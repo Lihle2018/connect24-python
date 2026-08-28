@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "connect24"
+version = "0.1.0"
+description = "Official Python client for the Connect24 communications API — email, SMS and WhatsApp."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Connect24" }]
+keywords = [
+    "sms",
+    "email",
+    "whatsapp",
+    "messaging api",
+    "sms api",
+    "south africa",
+    "popia",
+    "connect24",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+# No runtime dependencies, on purpose. An SDK is a dependency of somebody else's application, and
+# every package it drags in is a version conflict that becomes theirs to resolve. JSON over HTTPS
+# is something the standard library does perfectly well.
+dependencies = []
+
+[project.urls]
+Homepage = "https://connect24.co.za"
+Documentation = "https://connect24.co.za/developer"
+Source = "https://github.com/Lihle2018/connect24-python"
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "mypy>=1.8", "ruff>=0.4"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/connect24"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.9"
+files = ["src/connect24"]
+strict = true
