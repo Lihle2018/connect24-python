@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Official Python client for the Connect24 communications API — email, SMS and WhatsApp."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [{ name = "Connect24" }]
 keywords = [
     "sms",

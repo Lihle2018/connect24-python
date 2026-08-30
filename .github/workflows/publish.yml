@@ -1,0 +1,40 @@
+name: Publish to PyPI
+
+# Tag-driven, so a release is a deliberate act with a name rather than whatever happened to land
+# on main. Tag as v0.1.0 and the version in pyproject.toml must match — the job checks.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+
+    permissions:
+      # The whole point of trusted publishing: GitHub mints a short-lived OIDC token for this run
+      # and PyPI verifies it came from this repo and this workflow. There is no API token to store,
+      # rotate, or leak — which is the only kind of secret that cannot be stolen from a CI log.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Refuse a tag that disagrees with the package version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(grep -m1 '^version' pyproject.toml | cut -d'"' -f2)
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match version $VERSION in pyproject.toml." >&2
+            exit 1
+          fi
+          echo "Publishing $VERSION"
+
+      - run: pip install build
+      - run: python -m build
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
