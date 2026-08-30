@@ -1,40 +1,100 @@
-name: Publish to PyPI
+name: Release
 
-# Tag-driven, so a release is a deliberate act with a name rather than whatever happened to land
-# on main. Tag as v0.1.0 and the version in pyproject.toml must match — the job checks.
+# Two ways in, and neither needs anything on your machine:
+#
+#   Actions -> Release -> Run workflow -> type 0.2.0
+#   or: git tag v0.2.0 && git push origin v0.2.0
+#
+# The first bumps pyproject.toml, commits it, tags it and publishes. The second publishes a tag you
+# made yourself, after checking the tag and the manifest agree.
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without the leading v (e.g. 0.2.0)'
+        required: true
+        type: string
   push:
     tags: ['v*']
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     environment: pypi
 
     permissions:
-      # The whole point of trusted publishing: GitHub mints a short-lived OIDC token for this run
-      # and PyPI verifies it came from this repo and this workflow. There is no API token to store,
-      # rotate, or leak — which is the only kind of secret that cannot be stolen from a CI log.
+      # Short-lived OIDC credential for the registry — no stored token anywhere.
       id-token: write
+      # Lets the run commit the version bump and push the tag.
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The bump is committed back, so the run needs the branch rather than a detached commit.
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Work out the version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'; then
+            echo "Not a version: $VERSION" >&2
+            exit 1
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - name: Bump, commit and tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ steps.v.outputs.value }}"
+
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "v$VERSION already exists. Pick a new version — a published release is permanent." >&2
+            exit 1
+          fi
+
+          sed -i "0,/^version = .*/s//version = \"$VERSION\"/" pyproject.toml
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet; then
+            echo "Nothing changed — the manifest already says $VERSION." >&2
+          else
+            git add -A
+            git commit -m "chore: release $VERSION"
+            git push
+          fi
+
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Refuse a tag that disagrees with the manifest
+        if: github.event_name == 'push'
+        run: |
+          VERSION="${{ steps.v.outputs.value }}"
+          ACTUAL=$(grep -m1 '^version' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          if [ "$ACTUAL" != "$VERSION" ]; then
+            echo "Tag says $VERSION, pyproject.toml says $ACTUAL." >&2
+            exit 1
+          fi
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Refuse a tag that disagrees with the package version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          VERSION=$(grep -m1 '^version' pyproject.toml | cut -d'"' -f2)
-          if [ "$TAG" != "$VERSION" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match version $VERSION in pyproject.toml." >&2
-            exit 1
-          fi
-          echo "Publishing $VERSION"
+      - run: pip install build pytest
+      - run: python -m pytest tests -q
+        env:
+          PYTHONPATH: src
 
-      - run: pip install build
       - run: python -m build
 
       - uses: pypa/gh-action-pypi-publish@release/v1
