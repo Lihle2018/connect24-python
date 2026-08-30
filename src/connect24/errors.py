@@ -35,7 +35,7 @@ class Connect24ApiError(Connect24Error):
     ``429``
         Rate limited. The client already retried this a few times before giving up.
     ``502``
-        The upstream provider refused the message or could not be reached.
+        The message could not be handed on for delivery. Safe to retry.
     """
 
     def __init__(self, status_code: int, message: str, *, errors: dict[str, list[str]] | None = None):

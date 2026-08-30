@@ -36,7 +36,6 @@ class MessageAccepted(_Model):
     id: str = ""
     channel: str = ""
     status: str = ""
-    provider: str = ""
 
     @classmethod
     def _parse(cls, data: dict[str, Any]) -> "MessageAccepted":
@@ -45,7 +44,6 @@ class MessageAccepted(_Model):
             id=data.get("id", ""),
             channel=data.get("channel", ""),
             status=data.get("status", ""),
-            provider=data.get("provider", ""),
         )
 
 
@@ -59,7 +57,6 @@ class Message(_Model):
     from_: str = ""
     to: str = ""
     status: str = ""
-    provider: str = ""
     failure_reason: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -88,7 +85,6 @@ class Message(_Model):
             from_=data.get("from", ""),
             to=data.get("to", ""),
             status=data.get("status", ""),
-            provider=data.get("provider", ""),
             failure_reason=data.get("failureReason"),
             created_at=_dt(data.get("createdAt")),
             updated_at=_dt(data.get("updatedAt")),

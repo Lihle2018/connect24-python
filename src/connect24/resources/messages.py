@@ -32,7 +32,6 @@ class Messages:
         metadata: Mapping[str, str] | None = None,
         template: str | None = None,
         variables: Mapping[str, str] | None = None,
-        provider: str | None = None,
         idempotency_key: str | None = None,
     ) -> MessageAccepted:
         """Sends one message.
@@ -59,7 +58,6 @@ class Messages:
             "metadata": dict(metadata) if metadata else None,
             "template": template,
             "variables": dict(variables) if variables else None,
-            "provider": provider,
         }
         data = self._transport.post("v1/messages", body, idempotency_key=idempotency_key)
         return MessageAccepted._parse(data or {})
