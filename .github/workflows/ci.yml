@@ -26,3 +26,10 @@ jobs:
       - run: python -m pytest tests -q
         env:
           PYTHONPATH: src
+
+      # The samples are part of the contract: each ships with tests that drive the real
+      # SDK over a stubbed transport, and they must stay green with the SDK they sit on.
+      - name: Sample tests
+        run: python -m pytest examples/order_notifications -q
+        env:
+          PYTHONPATH: src:examples/order_notifications
